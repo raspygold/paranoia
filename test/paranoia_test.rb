@@ -25,7 +25,8 @@ def setup!
     'featureful_models' => 'deleted_at DATETIME, name VARCHAR(32)',
     'plain_models' => 'deleted_at DATETIME',
     'callback_models' => 'deleted_at DATETIME',
-    'fail_callback_models' => 'deleted_at DATETIME',
+    'destroy_fail_callback_models' => 'deleted_at DATETIME',
+    'restore_fail_callback_models' => 'deleted_at DATETIME',
     'related_models' => 'parent_model_id INTEGER, parent_model_with_counter_cache_column_id INTEGER, deleted_at DATETIME',
     'asplode_models' => 'parent_model_id INTEGER, deleted_at DATETIME',
     'employers' => 'name VARCHAR(32), deleted_at DATETIME',
@@ -394,8 +395,15 @@ class ParanoiaTest < test_framework
   end
 
   def test_destroy_return_value_on_failure
-    model = FailCallbackModel.create
+    model = DestroyFailCallbackModel.create
     return_value = model.destroy
+
+    assert_equal(return_value, false)
+  end
+  def test_restore_return_value_on_failure
+    model = RestoreFailCallbackModel.create
+    model.destroy
+    return_value = model.restore
 
     assert_equal(return_value, false)
   end
@@ -880,11 +888,18 @@ class UnparanoidUniqueModel < ActiveRecord::Base
   validates :name, :uniqueness => true
 end
 
-class FailCallbackModel < ActiveRecord::Base
+class DestroyFailCallbackModel < ActiveRecord::Base
   belongs_to :parent_model
   acts_as_paranoid
 
   before_destroy { |_| false }
+end
+
+class RestoreFailCallbackModel < ActiveRecord::Base
+  belongs_to :parent_model
+  acts_as_paranoid
+
+  before_restore { |_| false }
 end
 
 class FeaturefulModel < ActiveRecord::Base
